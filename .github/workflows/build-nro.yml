@@ -43,14 +43,10 @@ jobs:
       - name: Build toolchain image
         run: |
           cd bevy-horizon
-          find . -maxdepth 3 -iname "*docker*" -o -iname "*toolchain*"
-          SCRIPT=$(find scripts -maxdepth 2 -iname "*toolchain*" 2>/dev/null | head -n 1)
-          if [ -n "$SCRIPT" ]; then
-            bash "$SCRIPT"
-          else
-            DF=$(find . -maxdepth 3 -iname "*Dockerfile*" | head -n 1)
-            docker build -t bevy-horizon-toolchain:local -f "$DF" .
-          fi
+          cat docs/toolchain.md || true
+          DF=$(find . -path ./patches -prune -o -type f -iname "*Dockerfile*" -print | head -n 1)
+          echo "Using Dockerfile: $DF"
+          docker build -t bevy-horizon-toolchain:local -f "$DF" "$(dirname "$DF")"
 
       - name: Apply Switch patches
         run: |
@@ -138,3 +134,5 @@ jobs:
 
           cat << 'EOF' >> bevy-horizon/.cargo/bevy-0.18.toml
           getrandom = { path = "/src/bevy-horizon/patches/getrandom-0.2" }
+          getrandom_03 = { package = "getrandom", path = "/src/bevy-horizon/patches/getrandom-0.3" }
+          rustix_038 = { package = "rustix", path = "/src/bevy-horizon/patches/rustix-038" }
