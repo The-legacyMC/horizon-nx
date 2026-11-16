@@ -29,37 +29,17 @@ jobs:
           repository: horizon-rust/horizon-mods
           path: horizon-mods
 
-      - name: Download and Apply Veinminer, Coords HUD, Zoomify & Jade
+      - name: Apply Veinminer, Coords HUD, Zoomify & Jade
         run: |
           mkdir -p horizon-nx/mods
-          python3 - << 'EOF'
-          import json, urllib.request, os
-
-          index_url = "https://github.io"
-          req = urllib.request.Request(index_url, headers={"User-Agent": "Mozilla/5.0"})
-          index = json.loads(urllib.request.urlopen(req, timeout=20).read().decode())
-
-          wanted = ["veinminer", "coords_hud", "zoomify", "zoom", "jade"]
-          projects = index.get("projects") or index.get("mods") or index
-
-          items = projects.values() if isinstance(projects, dict) else projects
-          for proj in items:
-              if not isinstance(proj, dict):
-                  continue
-              pid = (proj.get("id") or proj.get("slug") or "").lower()
-              name = (proj.get("name") or "").lower()
-              if any(w == pid or w in pid or w in name for w in wanted):
-                  versions = proj.get("versions") or []
-                  if versions:
-                      latest = versions if isinstance(versions, list) else list(versions.values())
-                      dl = latest.get("url") or latest.get("download_url") or latest.get("asset_url")
-                      fname = latest.get("file") or latest.get("file_name") or f"{pid}.hnmod"
-                      if dl and fname.endswith(".hnmod"):
-                          print(f"Downloading {pid} -> {fname} from {dl}")
-                          urllib.request.urlretrieve(dl, f"horizon-nx/mods/{fname}")
-          EOF
+          find horizon-mods -maxdepth 4 -iname "*veinminer*" -o -iname "*coords*" -o -iname "*zoom*" -o -iname "*jade*"
+          for mod in veinminer coords_hud zoomify zoom jade; do
+            find horizon-mods -type f -iname "*${mod}*.hnmod" -exec cp -v {} horizon-nx/mods/ \;
+          done
           ls -la horizon-nx/mods
-          python3 horizon-mods/native/tools/native.py apply horizon-nx horizon-nx/mods/*.hnmod || true
+          if ls horizon-nx/mods/*.hnmod 1> /dev/null 2>&1; then
+            python3 horizon-mods/native/tools/native.py apply horizon-nx horizon-nx/mods/*.hnmod || true
+          fi
 
       - name: Build toolchain image
         run: |
@@ -144,3 +124,15 @@ jobs:
           printf '[package]\nname = "arboard"\nversion = "3.7.0"\nedition = "2021"\n[features]\ndefault = []\nwayland-data-control = []\nimage-data = []\n' > bevy-horizon/patches/arboard/Cargo.toml
           printf '#[derive(Debug,Clone)]pub enum Error{ContentNotAvailable,Unknown{description:String}}impl std::fmt::Display for Error{fn fmt(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{write!(f,"err")}}impl std::error::Error for Error{}pub struct Clipboard;impl Clipboard{pub fn new()->Result<Self,Error>{Err(Error::ContentNotAvailable)}pub fn get_text(&mut self)->Result<String,Error>{Err(Error::ContentNotAvailable)}pub fn set_text<T:Into<String>>(&mut self,_:T)->Result<(),Error>{Err(Error::ContentNotAvailable)}}\n' > bevy-horizon/patches/arboard/src/lib.rs
 
+          sed -i '0,/^getrandom =/s/^getrandom =/getrandom_04 =/' bevy-horizon/.cargo/bevy-0.18.toml
+          sed -i 's|getrandom_04 = { path =|getrandom_04 = { package = "getrandom", path =|' bevy-horizon/.cargo/bevy-0.18.toml
+          grep -E "^(rustix|polling|ring) =" bevy-horizon/Cargo.toml >> bevy-horizon/.cargo/bevy-0.18.toml
+          sed -i 's/sa_family: 0_u16/sa_len: 16, sa_family: 0_u8/g; s/sa_data: \[0; 26\]/sa_data: [0; 14]/g; s/c::sockaddr_in {/c::sockaddr_in { sin_len: 16,/g' bevy-horizon/patches/rustix/src/backend/libc/net/read_sockaddr.rs bevy-horizon/patches/rustix/src/backend/libc/net/write_sockaddr.rs
+          sed -i 's/-> c::sockaddr_in { sin_len: 16,/-> c::sockaddr_in {/' bevy-horizon/patches/rustix/src/backend/libc/net/write_sockaddr.rs
+
+          cat << 'EOF' >> bevy-horizon/.cargo/bevy-0.18.toml
+          getrandom = { path = "/src/bevy-horizon/patches/getrandom-0.2" }
+          getrandom_03 = { package = "getrandom", path = "/src/bevy-horizon/patches/getrandom-0.3" }
+          rustix_038 = { package = "rustix", path = "/src/bevy-horizon/patches/rustix-038" }
+          winit = { path = "/src/bevy-horizon/patches/winit-stub" }
+          arboard = { path = "/src/bevy-horizon/patches/arboard" }
