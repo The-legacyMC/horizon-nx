@@ -43,10 +43,7 @@ jobs:
       - name: Build toolchain image
         run: |
           cd bevy-horizon
-          cat docs/toolchain.md || true
-          DF=$(find . -path ./patches -prune -o -type f -iname "*Dockerfile*" -print | head -n 1)
-          echo "Using Dockerfile: $DF"
-          docker build -t bevy-horizon-toolchain:local -f "$DF" "$(dirname "$DF")"
+          docker build -t bevy-horizon-toolchain:local -f Containerfile .
 
       - name: Apply Switch patches
         run: |
@@ -136,3 +133,5 @@ jobs:
           getrandom = { path = "/src/bevy-horizon/patches/getrandom-0.2" }
           getrandom_03 = { package = "getrandom", path = "/src/bevy-horizon/patches/getrandom-0.3" }
           rustix_038 = { package = "rustix", path = "/src/bevy-horizon/patches/rustix-038" }
+          winit = { path = "/src/bevy-horizon/patches/winit-stub" }
+          arboard = { path = "/src/bevy-horizon/patches/arboard" }
