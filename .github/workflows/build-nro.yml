@@ -135,3 +135,4 @@ jobs:
           rustix_038 = { package = "rustix", path = "/src/bevy-horizon/patches/rustix-038" }
           winit = { path = "/src/bevy-horizon/patches/winit-stub" }
           arboard = { path = "/src/bevy-horizon/patches/arboard" }
+          wayland-backend = { path = "/src/bevy-horizon/patches/wayland-backend" }
