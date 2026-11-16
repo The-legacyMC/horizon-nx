@@ -44,7 +44,11 @@ jobs:
       - name: Build toolchain image
         run: |
           cd bevy-horizon
-          docker build -t bevy-horizon-toolchain:local -f docker/Dockerfile .
+          if [ -f scripts/build_toolchain.sh ]; then
+            ./scripts/build_toolchain.sh
+          else
+            docker build -t bevy-horizon-toolchain:local .
+          fi
 
       - name: Apply Switch patches
         run: |
@@ -133,6 +137,3 @@ jobs:
           cat << 'EOF' >> bevy-horizon/.cargo/bevy-0.18.toml
           getrandom = { path = "/src/bevy-horizon/patches/getrandom-0.2" }
           getrandom_03 = { package = "getrandom", path = "/src/bevy-horizon/patches/getrandom-0.3" }
-          rustix_038 = { package = "rustix", path = "/src/bevy-horizon/patches/rustix-038" }
-          winit = { path = "/src/bevy-horizon/patches/winit-stub" }
-          arboard = { path = "/src/bevy-horizon/patches/arboard" }
