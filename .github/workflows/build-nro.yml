@@ -32,7 +32,6 @@ jobs:
       - name: Apply Veinminer, Coords HUD, Zoomify & Jade
         run: |
           mkdir -p horizon-nx/mods
-          find horizon-mods -maxdepth 4 -iname "*veinminer*" -o -iname "*coords*" -o -iname "*zoom*" -o -iname "*jade*"
           for mod in veinminer coords_hud zoomify zoom jade; do
             find horizon-mods -type f -iname "*${mod}*.hnmod" -exec cp -v {} horizon-nx/mods/ \;
           done
@@ -44,10 +43,13 @@ jobs:
       - name: Build toolchain image
         run: |
           cd bevy-horizon
-          if [ -f scripts/build_toolchain.sh ]; then
-            ./scripts/build_toolchain.sh
+          find . -maxdepth 3 -iname "*docker*" -o -iname "*toolchain*"
+          SCRIPT=$(find scripts -maxdepth 2 -iname "*toolchain*" 2>/dev/null | head -n 1)
+          if [ -n "$SCRIPT" ]; then
+            bash "$SCRIPT"
           else
-            docker build -t bevy-horizon-toolchain:local .
+            DF=$(find . -maxdepth 3 -iname "*Dockerfile*" | head -n 1)
+            docker build -t bevy-horizon-toolchain:local -f "$DF" .
           fi
 
       - name: Apply Switch patches
@@ -136,4 +138,3 @@ jobs:
 
           cat << 'EOF' >> bevy-horizon/.cargo/bevy-0.18.toml
           getrandom = { path = "/src/bevy-horizon/patches/getrandom-0.2" }
-          getrandom_03 = { package = "getrandom", path = "/src/bevy-horizon/patches/getrandom-0.3" }
