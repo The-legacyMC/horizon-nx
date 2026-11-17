@@ -44,6 +44,7 @@ jobs:
       - name: Build Horizon NRO directly
         run: |
           rm -rf bevy-horizon/.cargo horizon-nx/.cargo
+          sed -i 's/env::var("CARGO_CFG_TARGET_FAMILY")/Ok::<String, env::VarError>("unix".into())/g' horizon-nx/third_party/libmimalloc-sys/build.rs || true
           docker run --rm -v "$PWD:/src" -w /src/horizon-nx bevy-horizon-toolchain:local bash -c '
             set -e
             rm -rf /root/.cargo/config* "$CARGO_HOME/config*"
