@@ -31,8 +31,8 @@ jobs:
             find horizon-mods -type f -iname "*${mod}*.hnmod" -exec cp -v {} horizon-nx/mods/ \;
           done
           if ls horizon-nx/mods/*.hnmod 1> /dev/null 2>&1; then
-            python3 horizon-mods/native/tools/native.py apply horizon-nx horizon-nx/mods/*.hnmod || true
-          fi
+            python3 -c 'p="bevy-horizon/scripts/build_game.sh"; s=open(p).read(); idx=s.rfind("python3 - <<"); end=s.find("\nPY\n", idx)+4; open(p,"w").write(s[:idx]+s[end:])'
+
 
       - name: Build toolchain image
         run: |
