@@ -24,7 +24,7 @@ jobs:
           repository: horizon-rust/horizon-mods
           path: horizon-mods
 
-      - name: Apply All Survival & Server Mods
+      - name: Apply Mods
         run: |
           mkdir -p horizon-nx/mods
           for mod in veinminer coords_hud zoomify zoom jade atlas freecam appleskin fullbright gamma inventory sort dynamic 3d; do
@@ -40,48 +40,19 @@ jobs:
           sed -i '/dkp-pacman/,/Scc/d' Containerfile
           printf '\nRUN mkdir -p /opt/devkitpro/devkitA64/aarch64-none-elf/include/sys && printf "#pragma once\\n#include <stddef.h>\\n#include <stdlib.h>\\n#define PROT_NONE 0\\n#define PROT_READ 1\\n#define PROT_WRITE 2\\n#define PROT_EXEC 4\\n#define MAP_PRIVATE 2\\n#define MAP_ANONYMOUS 0x20\\n#define MAP_ANON MAP_ANONYMOUS\\n#define MAP_NORESERVE 0\\n#define MAP_FAILED ((void*)-1)\\nstatic inline void* mmap(void* a,size_t l,int p,int f,int fd,long o){(void)a;(void)p;(void)f;(void)fd;(void)o;void* r=aligned_alloc(4096,(l+4095)&~4095ULL);return r?r:MAP_FAILED;}\\nstatic inline int munmap(void* a,size_t l){(void)l;free(a);return 0;}\\nstatic inline int mprotect(void* a,size_t l,int p){(void)a;(void)l;(void)p;return 0;}\\nstatic inline int madvise(void* a,size_t l,int ad){(void)a;(void)l;(void)ad;return 0;}\\n#define MADV_DONTNEED 4\\n#define MADV_FREE 8\\n" > /opt/devkitpro/devkitA64/aarch64-none-elf/include/sys/mman.h\n' >> Containerfile
           docker build -t bevy-horizon-toolchain:local -f Containerfile .
-      - name: Apply Switch patches
+
+      - name: Build Horizon NRO directly
         run: |
-          mkdir -p bevy-horizon/patches/wgpu-hal bevy-horizon/patches/wgpu-core
-          
-
-
-
-          mkdir -p bevy-horizon/patches/getrandom-0.2/src bevy-horizon/patches/getrandom-0.3/src
-          printf '[package]\nname="getrandom"\nversion="0.2.15"\nedition="2021"\n[features]\ndefault=[]\nstd=[]\njs=[]\n' > bevy-horizon/patches/getrandom-0.2/Cargo.toml
-          printf '#![no_std]\nuse core::num::NonZeroU32;\n#[derive(Copy,Clone,Debug,Eq,PartialEq)]\npub struct Error(NonZeroU32);\nimpl Error{pub const UNSUPPORTED:Error=Error(unsafe{NonZeroU32::new_unchecked(1)});pub fn code(self)->NonZeroU32{self.0}pub fn raw_os_error(self)->Option<i32>{Some(self.0.get() as i32)}}\nimpl core::fmt::Display for Error{fn fmt(&self,f:&mut core::fmt::Formatter)->core::fmt::Result{write!(f,"err")}}\nimpl From<NonZeroU32> for Error{fn from(c:NonZeroU32)->Self{Error(c)}}\nextern "C"{fn randomGet(b:*mut core::ffi::c_void,l:usize);}\npub fn getrandom(d:&mut [u8])->Result<(),Error>{unsafe{randomGet(d.as_mut_ptr() as *mut core::ffi::c_void,d.len());}Ok(())}\n' > bevy-horizon/patches/getrandom-0.2/src/lib.rs
-          printf '[package]\nname="getrandom"\nversion="0.3.4"\nedition="2021"\n' > bevy-horizon/patches/getrandom-0.3/Cargo.toml
-          printf '#![no_std]\nuse core::num::NonZeroU32;\n#[derive(Copy,Clone,Debug,Eq,PartialEq)]\npub struct Error(NonZeroU32);\nimpl Error{pub const UNSUPPORTED:Error=Error(unsafe{NonZeroU32::new_unchecked(1)});pub fn code(self)->NonZeroU32{self.0}pub fn raw_os_error(self)->Option<i32>{Some(self.0.get() as i32)}}\nimpl core::fmt::Display for Error{fn fmt(&self,f:&mut core::fmt::Formatter)->core::fmt::Result{write!(f,"err")}}\nimpl From<NonZeroU32> for Error{fn from(c:NonZeroU32)->Self{Error(c)}}\nextern "C"{fn randomGet(b:*mut core::ffi::c_void,l:usize);}\npub fn fill(d:&mut [u8])->Result<(),Error>{unsafe{randomGet(d.as_mut_ptr() as *mut core::ffi::c_void,d.len());}Ok(())}\npub fn u32()->Result<u32,Error>{let mut b=[0u8;4];fill(&mut b)?;Ok(u32::from_ne_bytes(b))}\npub fn u64()->Result<u64,Error>{let mut b=[0u8;8];fill(&mut b)?;Ok(u64::from_ne_bytes(b))}\n' > bevy-horizon/patches/getrandom-0.3/src/lib.rs
-          for c in wayland-backend wayland-client wayland-protocols wayland-csd-frame wayland-cursor calloop-wayland-source wayland-protocols-wlr wayland-protocols-plasma smithay-client-toolkit sctk-adwaita x11rb calloop rustix-038 winit-stub arboard; do mkdir -p "bevy-horizon/patches/$c/src"; touch "bevy-horizon/patches/$c/src/lib.rs"; done
-          printf '[package]\nname="wayland-backend"\nversion="0.3.17"\nedition="2021"\n[features]\nclient_system=[]\ndlopen=[]\n' > bevy-horizon/patches/wayland-backend/Cargo.toml
-          printf '[package]\nname="wayland-client"\nversion="0.31.15"\nedition="2021"\n' > bevy-horizon/patches/wayland-client/Cargo.toml
-          printf '[package]\nname="wayland-protocols"\nversion="0.32.13"\nedition="2021"\n[features]\nclient=[]\nserver=[]\nstaging=[]\nunstable=[]\n' > bevy-horizon/patches/wayland-protocols/Cargo.toml
-          printf '[package]\nname="wayland-csd-frame"\nversion="0.3.0"\nedition="2021"\n[features]\ndefault=[]\n' > bevy-horizon/patches/wayland-csd-frame/Cargo.toml
-          printf '[package]\nname="wayland-cursor"\nversion="0.31.11"\nedition="2021"\n[features]\ndefault=[]\n' > bevy-horizon/patches/wayland-cursor/Cargo.toml
-          printf '[package]\nname="calloop-wayland-source"\nversion="0.3.0"\nedition="2021"\n[features]\ndefault=[]\n' > bevy-horizon/patches/calloop-wayland-source/Cargo.toml
-          printf '[package]\nname="wayland-protocols-wlr"\nversion="0.3.12"\nedition="2021"\n[features]\ndefault=[]\nclient=[]\nserver=[]\n' > bevy-horizon/patches/wayland-protocols-wlr/Cargo.toml
-          printf '[package]\nname="wayland-protocols-plasma"\nversion="0.3.12"\nedition="2021"\n[features]\ndefault=[]\nclient=[]\nserver=[]\n' > bevy-horizon/patches/wayland-protocols-plasma/Cargo.toml
-          printf '[package]\nname="smithay-client-toolkit"\nversion="0.19.2"\nedition="2021"\n[features]\ndefault=[]\ncalloop=[]\nxkbcommon=[]\n' > bevy-horizon/patches/smithay-client-toolkit/Cargo.toml
-          printf '[package]\nname="sctk-adwaita"\nversion="0.10.1"\nedition="2021"\n[features]\ndefault=[]\nab_glyph=[]\ncrossfont=[]\n' > bevy-horizon/patches/sctk-adwaita/Cargo.toml
-          printf '[package]\nname="x11rb"\nversion="0.13.2"\nedition="2021"\n[features]\ndefault=[]\nallow-unsafe-code=[]\ncursor=[]\nrandr=[]\nrender=[]\nresource_manager=[]\nshape=[]\nsync=[]\nxfixes=[]\nxi=[]\nxinput=[]\nxkb=[]\ndl-libxcb=[]\n' > bevy-horizon/patches/x11rb/Cargo.toml
-          printf '[package]\nname="calloop"\nversion="0.13.0"\nedition="2021"\n[features]\ndefault=[]\nexecutor=[]\nsignals=[]\nblock_on=[]\n' > bevy-horizon/patches/calloop/Cargo.toml
-          printf '[package]\nname="rustix"\nversion="0.38.44"\nedition="2021"\n[features]\ndefault=[]\nstd=[]\nuse-libc-auxv=[]\nfs=[]\nnet=[]\nio_uring=[]\nparam=[]\nprocess=[]\nrand=[]\nruntime=[]\nshm=[]\nsystem=[]\ntermios=[]\nthread=[]\ntime=[]\nevent=[]\nmm=[]\nmount=[]\npipe=[]\npty=[]\nstdio=[]\n' > bevy-horizon/patches/rustix-038/Cargo.toml
-          printf '[package]\nname="winit"\nversion="0.30.13"\nedition="2021"\n[features]\ndefault=[]\nx11=[]\nwayland=[]\nwayland-dlopen=[]\nwayland-csd-adwaita=[]\n' > bevy-horizon/patches/winit-stub/Cargo.toml
-          printf '[package]\nname="arboard"\nversion="3.7.0"\nedition="2021"\n[features]\ndefault=[]\nwayland-data-control=[]\nimage-data=[]\n' > bevy-horizon/patches/arboard/Cargo.toml
-          printf '#[derive(Debug,Clone)]pub enum Error{ContentNotAvailable,Unknown{description:String}}impl std::fmt::Display for Error{fn fmt(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{write!(f,"err")}}impl std::error::Error for Error{}pub struct Clipboard;impl Clipboard{pub fn new()->Result<Self,Error>{Err(Error::ContentNotAvailable)}pub fn get_text(&mut self)->Result<String,Error>{Err(Error::ContentNotAvailable)}pub fn set_text<T:Into<String>>(&mut self,_:T)->Result<(),Error>{Err(Error::ContentNotAvailable)}}\n' > bevy-horizon/patches/arboard/src/lib.rs
-          sed -i 's/sa_family: 0_u16/sa_len: 16, sa_family: 0_u8/g; s/sa_data: \[0; 26\]/sa_data: [0; 14]/g; s/c::sockaddr_in {/c::sockaddr_in { sin_len: 16,/g' bevy-horizon/patches/rustix/src/backend/libc/net/read_sockaddr.rs bevy-horizon/patches/rustix/src/backend/libc/net/write_sockaddr.rs
-          sed -i 's/-> c::sockaddr_in { sin_len: 16,/-> c::sockaddr_in {/' bevy-horizon/patches/rustix/src/backend/libc/net/write_sockaddr.rs
-          sed -i '/^wgpu/d; /^bevy_/d' bevy-horizon/.cargo/bevy-0.19.toml
-          sed -i '0,/^getrandom =/s/^getrandom =/getrandom_04 =/' bevy-horizon/.cargo/bevy-0.19.toml
-          sed -i 's|getrandom_04 = { path =|getrandom_04 = { package = "getrandom", path =|' bevy-horizon/.cargo/bevy-0.19.toml
-          sed -n '/^\[patch\.crates-io\]/,$p' horizon-nx/Cargo.toml | tail -n +2 | sed 's|path = "|path = "/src/horizon-nx/|g' >> bevy-horizon/.cargo/bevy-0.19.toml
-      - name: Build Horizon NRO with Mods
-        run: BEVY=0.19 CARGO_ARGS="--no-default-features" JOBS=4 ./bevy-horizon/scripts/build_game.sh "$PWD/horizon-nx" horizon-client horizon-client "Horizon"
+          docker run --rm -v "$PWD:/src" -w /src/horizon-nx bevy-horizon-toolchain:local bash -c '
+            export DEVKITPRO=/opt/devkitpro
+            export DEVKITA64=/opt/devkitpro/devkitA64
+            export PATH="$DEVKITA64/bin:/root/.cargo/bin:$PATH"
+            cargo nx build --release --no-default-features -j 4
+          '
+          find horizon-nx -name "*.nro" -ls
 
       - name: Upload NRO Artifact
         uses: actions/upload-artifact@v4
         with:
           name: horizon-client-switch-nro-with-mods
-          path: |
-            horizon-nx/**/*.nro
-            bevy-horizon/**/*.nro
+          path: horizon-nx/**/*.nro
