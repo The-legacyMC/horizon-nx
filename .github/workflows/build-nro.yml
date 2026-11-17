@@ -65,12 +65,8 @@ jobs:
           printf '[package]\nname="winit"\nversion="0.30.13"\nedition="2021"\n[features]\ndefault=[]\nx11=[]\nwayland=[]\nwayland-dlopen=[]\nwayland-csd-adwaita=[]\n' > bevy-horizon/patches/winit-stub/Cargo.toml
           printf '[package]\nname="arboard"\nversion="3.7.0"\nedition="2021"\n[features]\ndefault=[]\nwayland-data-control=[]\nimage-data=[]\n' > bevy-horizon/patches/arboard/Cargo.toml
           printf '#[derive(Debug,Clone)]pub enum Error{ContentNotAvailable,Unknown{description:String}}impl std::fmt::Display for Error{fn fmt(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{write!(f,"err")}}impl std::error::Error for Error{}pub struct Clipboard;impl Clipboard{pub fn new()->Result<Self,Error>{Err(Error::ContentNotAvailable)}pub fn get_text(&mut self)->Result<String,Error>{Err(Error::ContentNotAvailable)}pub fn set_text<T:Into<String>>(&mut self,_:T)->Result<(),Error>{Err(Error::ContentNotAvailable)}}\n' > bevy-horizon/patches/arboard/src/lib.rs
-          sed -i '0,/^getrandom =/s/^getrandom =/getrandom_04 =/' bevy-horizon/.cargo/bevy-0.19.toml
-          sed -i 's|getrandom_04 = { path =|getrandom_04 = { package = "getrandom", path =|' bevy-horizon/.cargo/bevy-0.19.toml
-          sed -i '/^wgpu/d; /^bevy_/d' bevy-horizon/.cargo/bevy-0.19.toml
           sed -i 's/sa_family: 0_u16/sa_len: 16, sa_family: 0_u8/g; s/sa_data: \[0; 26\]/sa_data: [0; 14]/g; s/c::sockaddr_in {/c::sockaddr_in { sin_len: 16,/g' bevy-horizon/patches/rustix/src/backend/libc/net/read_sockaddr.rs bevy-horizon/patches/rustix/src/backend/libc/net/write_sockaddr.rs
           sed -i 's/-> c::sockaddr_in { sin_len: 16,/-> c::sockaddr_in {/' bevy-horizon/patches/rustix/src/backend/libc/net/write_sockaddr.rs
-          sed -n '/^\[patch\.crates-io\]/,$p' horizon-nx/Cargo.toml | tail -n +2 | sed 's|path = "|path = "/src/horizon-nx/|g' >> bevy-horizon/.cargo/bevy-0.19.toml
       - name: Build Horizon NRO with Mods
         run: BEVY=0.19 CARGO_ARGS="--no-default-features" JOBS=4 ./bevy-horizon/scripts/build_game.sh "$PWD/horizon-nx" horizon-client horizon-client "Horizon"
 
