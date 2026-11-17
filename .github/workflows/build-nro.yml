@@ -50,8 +50,8 @@ jobs:
             export DEVKITPRO=/opt/devkitpro
             export DEVKITA64=/opt/devkitpro/devkitA64
             export PATH="$DEVKITA64/bin:/opt/devkitpro/tools/bin:/root/.cargo/bin:$PATH"
-            rustup target add aarch64-nintendo-switch-freestanding || true
-            cargo build --release --target aarch64-nintendo-switch-freestanding --no-default-features -j 4
+            rustup component add rust-src || true
+            cargo +nightly build -Zbuild-std=std,panic_abort --release --target aarch64-nintendo-switch-freestanding --no-default-features -j 4
             ELF=$(find target/aarch64-nintendo-switch-freestanding/release -maxdepth 1 -type f -executable | head -n 1)
             elf2nro "$ELF" horizon-client.nro
           '
