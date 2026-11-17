@@ -10,27 +10,24 @@ jobs:
       - name: Free disk space
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
 
-      - name: Checkout horizon-nx
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           path: horizon-nx
 
-      - name: Checkout bevy-horizon
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           repository: JohnUzoka/bevy-horizon
           path: bevy-horizon
 
-      - name: Checkout horizon-mods
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           repository: horizon-rust/horizon-mods
           path: horizon-mods
 
-      - name: Apply Veinminer, Coords HUD, Zoomify & Jade
+      - name: Apply All Survival & Server Mods
         run: |
           mkdir -p horizon-nx/mods
-          for mod in veinminer coords_hud zoomify zoom jade; do
+          for mod in veinminer coords_hud zoomify zoom jade atlas freecam appleskin fullbright gamma inventory sort dynamic 3d; do
             find horizon-mods -type f -iname "*${mod}*.hnmod" -exec cp -v {} horizon-nx/mods/ \;
           done
           if ls horizon-nx/mods/*.hnmod 1> /dev/null 2>&1; then
@@ -46,9 +43,9 @@ jobs:
       - name: Apply Switch patches
         run: |
           mkdir -p bevy-horizon/patches/getrandom-0.2/src bevy-horizon/patches/getrandom-0.3/src
-          printf '[package]\nname = "getrandom"\nversion = "0.2.15"\nedition = "2021"\n[features]\ndefault = []\nstd = []\njs = []\n' > bevy-horizon/patches/getrandom-0.2/Cargo.toml
+          printf '[package]\nname="getrandom"\nversion="0.2.15"\nedition="2021"\n[features]\ndefault=[]\nstd=[]\njs=[]\n' > bevy-horizon/patches/getrandom-0.2/Cargo.toml
           printf '#![no_std]\nuse core::num::NonZeroU32;\n#[derive(Copy,Clone,Debug,Eq,PartialEq)]\npub struct Error(NonZeroU32);\nimpl Error{pub const UNSUPPORTED:Error=Error(unsafe{NonZeroU32::new_unchecked(1)});pub fn code(self)->NonZeroU32{self.0}pub fn raw_os_error(self)->Option<i32>{Some(self.0.get() as i32)}}\nimpl core::fmt::Display for Error{fn fmt(&self,f:&mut core::fmt::Formatter)->core::fmt::Result{write!(f,"err")}}\nimpl From<NonZeroU32> for Error{fn from(c:NonZeroU32)->Self{Error(c)}}\nextern "C"{fn randomGet(b:*mut core::ffi::c_void,l:usize);}\npub fn getrandom(d:&mut [u8])->Result<(),Error>{unsafe{randomGet(d.as_mut_ptr() as *mut core::ffi::c_void,d.len());}Ok(())}\n' > bevy-horizon/patches/getrandom-0.2/src/lib.rs
-          printf '[package]\nname = "getrandom"\nversion="0.3.4"\nedition="2021"\n' > bevy-horizon/patches/getrandom-0.3/Cargo.toml
+          printf '[package]\nname="getrandom"\nversion="0.3.4"\nedition="2021"\n' > bevy-horizon/patches/getrandom-0.3/Cargo.toml
           printf '#![no_std]\nuse core::num::NonZeroU32;\n#[derive(Copy,Clone,Debug,Eq,PartialEq)]\npub struct Error(NonZeroU32);\nimpl Error{pub const UNSUPPORTED:Error=Error(unsafe{NonZeroU32::new_unchecked(1)});pub fn code(self)->NonZeroU32{self.0}pub fn raw_os_error(self)->Option<i32>{Some(self.0.get() as i32)}}\nimpl core::fmt::Display for Error{fn fmt(&self,f:&mut core::fmt::Formatter)->core::fmt::Result{write!(f,"err")}}\nimpl From<NonZeroU32> for Error{fn from(c:NonZeroU32)->Self{Error(c)}}\nextern "C"{fn randomGet(b:*mut core::ffi::c_void,l:usize);}\npub fn fill(d:&mut [u8])->Result<(),Error>{unsafe{randomGet(d.as_mut_ptr() as *mut core::ffi::c_void,d.len());}Ok(())}\npub fn u32()->Result<u32,Error>{let mut b=[0u8;4];fill(&mut b)?;Ok(u32::from_ne_bytes(b))}\npub fn u64()->Result<u64,Error>{let mut b=[0u8;8];fill(&mut b)?;Ok(u64::from_ne_bytes(b))}\n' > bevy-horizon/patches/getrandom-0.3/src/lib.rs
           for c in wayland-backend wayland-client wayland-protocols wayland-csd-frame wayland-cursor calloop-wayland-source wayland-protocols-wlr wayland-protocols-plasma smithay-client-toolkit sctk-adwaita x11rb calloop rustix-038 winit-stub arboard; do mkdir -p "bevy-horizon/patches/$c/src"; touch "bevy-horizon/patches/$c/src/lib.rs"; done
           printf '[package]\nname="wayland-backend"\nversion="0.3.17"\nedition="2021"\n[features]\nclient_system=[]\ndlopen=[]\n' > bevy-horizon/patches/wayland-backend/Cargo.toml
