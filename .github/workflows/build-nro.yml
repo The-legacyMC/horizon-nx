@@ -38,7 +38,10 @@ jobs:
           fi
 
       - name: Build toolchain image
-        run: cd bevy-horizon && docker build -t bevy-horizon-toolchain:local -f Containerfile .
+        run: |
+          cd bevy-horizon
+          printf '\nRUN mkdir -p /opt/devkitpro/devkitA64/aarch64-none-elf/include/sys && printf "#pragma once\\n#include <stddef.h>\\n#include <stdlib.h>\\n#define PROT_NONE 0\\n#define PROT_READ 1\\n#define PROT_WRITE 2\\n#define PROT_EXEC 4\\n#define MAP_PRIVATE 2\\n#define MAP_ANONYMOUS 0x20\\n#define MAP_ANON MAP_ANONYMOUS\\n#define MAP_NORESERVE 0\\n#define MAP_FAILED ((void*)-1)\\nstatic inline void* mmap(void* a,size_t l,int p,int f,int fd,long o){(void)a;(void)p;(void)f;(void)fd;(void)o;void* r=aligned_alloc(4096,(l+4095)&~4095ULL);return r?r:MAP_FAILED;}\\nstatic inline int munmap(void* a,size_t l){(void)l;free(a);return 0;}\\nstatic inline int mprotect(void* a,size_t l,int p){(void)a;(void)l;(void)p;return 0;}\\nstatic inline int madvise(void* a,size_t l,int ad){(void)a;(void)l;(void)ad;return 0;}\\n#define MADV_DONTNEED 4\\n#define MADV_FREE 8\\n" > /opt/devkitpro/devkitA64/aarch64-none-elf/include/sys/mman.h\n' >> Containerfile
+          docker build -t bevy-horizon-toolchain:local -f Containerfile .
 
       - name: Apply Switch patches
         run: |
@@ -70,15 +73,3 @@ jobs:
           sed -i 's/sa_family: 0_u16/sa_len: 16, sa_family: 0_u8/g; s/sa_data: \[0; 26\]/sa_data: [0; 14]/g; s/c::sockaddr_in {/c::sockaddr_in { sin_len: 16,/g' bevy-horizon/patches/rustix/src/backend/libc/net/read_sockaddr.rs bevy-horizon/patches/rustix/src/backend/libc/net/write_sockaddr.rs
           sed -i 's/-> c::sockaddr_in { sin_len: 16,/-> c::sockaddr_in {/' bevy-horizon/patches/rustix/src/backend/libc/net/write_sockaddr.rs
           sed -n '/^\[patch\.crates-io\]/,$p' horizon-nx/Cargo.toml | tail -n +2 | sed 's|path = "|path = "/src/horizon-nx/|g' >> bevy-horizon/.cargo/bevy-0.19.toml
-          printf 'getrandom_03={package="getrandom",path="/src/bevy-horizon/patches/getrandom-0.3"}\nrustix_038={package="rustix",path="/src/bevy-horizon/patches/rustix-038"}\nwinit={path="/src/bevy-horizon/patches/winit-stub"}\narboard={path="/src/bevy-horizon/patches/arboard"}\nwayland-backend={path="/src/bevy-horizon/patches/wayland-backend"}\nwayland-client={path="/src/bevy-horizon/patches/wayland-client"}\nwayland-protocols={path="/src/bevy-horizon/patches/wayland-protocols"}\nwayland-csd-frame={path="/src/bevy-horizon/patches/wayland-csd-frame"}\nwayland-cursor={path="/src/bevy-horizon/patches/wayland-cursor"}\ncalloop-wayland-source={path="/src/bevy-horizon/patches/calloop-wayland-source"}\nwayland-protocols-wlr={path="/src/bevy-horizon/patches/wayland-protocols-wlr"}\nwayland-protocols-plasma={path="/src/bevy-horizon/patches/wayland-protocols-plasma"}\nsmithay-client-toolkit={path="/src/bevy-horizon/patches/smithay-client-toolkit"}\nsctk-adwaita={path="/src/bevy-horizon/patches/sctk-adwaita"}\nx11rb={path="/src/bevy-horizon/patches/x11rb"}\ncalloop={path="/src/bevy-horizon/patches/calloop"}\n' >> bevy-horizon/.cargo/bevy-0.19.toml
-
-      - name: Build Horizon NRO with Mods
-        run: BEVY=0.19 CARGO_ARGS="--no-default-features" JOBS=4 ./bevy-horizon/scripts/build_game.sh "$PWD/horizon-nx" horizon-client horizon-client "Horizon"
-
-      - name: Upload NRO Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: horizon-client-switch-nro-with-mods
-          path: |
-            horizon-nx/**/*.nro
-            bevy-horizon/**/*.nro
