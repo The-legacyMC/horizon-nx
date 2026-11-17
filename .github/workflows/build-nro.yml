@@ -43,21 +43,22 @@ jobs:
 
       - name: Build Horizon NRO directly
         run: |
-          python3 - << 'EOF'
-          with open("bevy-horizon/scripts/build_game.sh", "r") as f:
-              s = f.read()
-          start = s.find("python3 - <<")
-          end = s.find("\nPY\n", start)
-          if start != -1 and end != -1:
-              s = s[:start] + "true\n" + s[end+4:]
-          with open("bevy-horizon/scripts/build_game.sh", "w") as f:
-              f.write(s)
-          EOF
-          BEVY=0.19 CARGO_ARGS="--no-default-features" JOBS=4 ./bevy-horizon/scripts/build_game.sh "$PWD/horizon-nx" horizon-client horizon-client "Horizon"
-          find horizon-nx -name "*.nro" -ls
+          rm -rf bevy-horizon/.cargo horizon-nx/.cargo
+          docker run --rm -v "$PWD:/src" -w /src/horizon-nx bevy-horizon-toolchain:local bash -c '
+            set -e
+            rm -rf /root/.cargo/config* "$CARGO_HOME/config*"
+            export DEVKITPRO=/opt/devkitpro
+            export DEVKITA64=/opt/devkitpro/devkitA64
+            export PATH="$DEVKITA64/bin:/opt/devkitpro/tools/bin:/root/.cargo/bin:$PATH"
+            rustup target add aarch64-nintendo-switch-freestanding || true
+            cargo build --release --target aarch64-nintendo-switch-freestanding --no-default-features -j 4
+            ELF=$(find target/aarch64-nintendo-switch-freestanding/release -maxdepth 1 -type f -executable | head -n 1)
+            elf2nro "$ELF" horizon-client.nro
+          '
+          ls -lh horizon-nx/horizon-client.nro
 
       - name: Upload NRO Artifact
         uses: actions/upload-artifact@v4
         with:
           name: horizon-client-switch-nro-with-mods
-          path: horizon-nx/**/*.nro
+          path: horizon-nx/horizon-client.nro
