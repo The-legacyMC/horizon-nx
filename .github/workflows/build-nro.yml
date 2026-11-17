@@ -43,7 +43,7 @@ jobs:
       - name: Apply Switch patches
         run: |
           mkdir -p bevy-horizon/patches/wgpu-hal bevy-horizon/patches/wgpu-core
-          mkdir -p bevy-horizon/patches/getrandom-0.2/src bevy-horizon/patches/getrandom-0.3/src
+          
 
 
 
