@@ -37,6 +37,8 @@ jobs:
       - name: Build toolchain image
         run: |
           cd bevy-horizon
+          sed -i 's/dkp-pacman -Syu --noconfirm/dkp-pacman -S --noconfirm --needed || true;/g' Containerfile
+          sed -i 's/dkp-pacman -Scc --noconfirm/true/g' Containerfile
           printf '\nRUN mkdir -p /opt/devkitpro/devkitA64/aarch64-none-elf/include/sys && printf "#pragma once\\n#include <stddef.h>\\n#include <stdlib.h>\\n#define PROT_NONE 0\\n#define PROT_READ 1\\n#define PROT_WRITE 2\\n#define PROT_EXEC 4\\n#define MAP_PRIVATE 2\\n#define MAP_ANONYMOUS 0x20\\n#define MAP_ANON MAP_ANONYMOUS\\n#define MAP_NORESERVE 0\\n#define MAP_FAILED ((void*)-1)\\nstatic inline void* mmap(void* a,size_t l,int p,int f,int fd,long o){(void)a;(void)p;(void)f;(void)fd;(void)o;void* r=aligned_alloc(4096,(l+4095)&~4095ULL);return r?r:MAP_FAILED;}\\nstatic inline int munmap(void* a,size_t l){(void)l;free(a);return 0;}\\nstatic inline int mprotect(void* a,size_t l,int p){(void)a;(void)l;(void)p;return 0;}\\nstatic inline int madvise(void* a,size_t l,int ad){(void)a;(void)l;(void)ad;return 0;}\\n#define MADV_DONTNEED 4\\n#define MADV_FREE 8\\n" > /opt/devkitpro/devkitA64/aarch64-none-elf/include/sys/mman.h\n' >> Containerfile
           docker build -t bevy-horizon-toolchain:local -f Containerfile .
 
