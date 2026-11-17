@@ -43,12 +43,17 @@ jobs:
 
       - name: Build Horizon NRO directly
         run: |
-          docker run --rm -v "$PWD:/src" -w /src/horizon-nx bevy-horizon-toolchain:local bash -c '
-            export DEVKITPRO=/opt/devkitpro
-            export DEVKITA64=/opt/devkitpro/devkitA64
-            export PATH="$DEVKITA64/bin:/root/.cargo/bin:$PATH"
-            cargo nx build --release --no-default-features -j 4
-          '
+          python3 - << 'EOF'
+          with open("bevy-horizon/scripts/build_game.sh", "r") as f:
+              s = f.read()
+          start = s.find("python3 - <<")
+          end = s.find("\nPY\n", start)
+          if start != -1 and end != -1:
+              s = s[:start] + "true\n" + s[end+4:]
+          with open("bevy-horizon/scripts/build_game.sh", "w") as f:
+              f.write(s)
+          EOF
+          BEVY=0.19 CARGO_ARGS="--no-default-features" JOBS=4 ./bevy-horizon/scripts/build_game.sh "$PWD/horizon-nx" horizon-client horizon-client "Horizon"
           find horizon-nx -name "*.nro" -ls
 
       - name: Upload NRO Artifact
