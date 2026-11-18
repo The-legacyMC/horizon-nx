@@ -71,7 +71,7 @@ jobs:
           sed -i '/^wgpu/d; /^bevy_/d; /^naga/d' bevy-horizon/.cargo/bevy-0.19.toml
           sed -i '0,/^getrandom =/s/^getrandom =/getrandom_04 =/' bevy-horizon/.cargo/bevy-0.19.toml
           sed -i 's|getrandom_04 = { path =|getrandom_04 = { package = "getrandom", path =|' bevy-horizon/.cargo/bevy-0.19.toml
-       - name: Build Horizon NRO with Mods
+      - name: Build Horizon NRO with Mods
         run: BEVY=0.19 CARGO_ARGS="--no-default-features" JOBS=4 ./bevy-horizon/scripts/build_game.sh "$PWD/horizon-nx" horizon-client horizon-client "Horizon"
 
       - name: Upload NRO Artifact
