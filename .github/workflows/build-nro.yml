@@ -71,13 +71,14 @@ jobs:
           sed -i '/^wgpu/d; /^bevy_/d; /^naga/d' bevy-horizon/.cargo/bevy-0.19.toml
           sed -i '0,/^getrandom =/s/^getrandom =/getrandom_04 =/' bevy-horizon/.cargo/bevy-0.19.toml
           sed -i 's|getrandom_04 = { path =|getrandom_04 = { package = "getrandom", path =|' bevy-horizon/.cargo/bevy-0.19.toml
-      - name: Build Horizon NRO with Mods
-        run: BEVY=0.19 CARGO_ARGS="--no-default-features" JOBS=4 ./bevy-horizon/scripts/build_game.sh "$PWD/horizon-nx" horizon-client horizon-client "Horizon"
-
-      - name: Upload NRO Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: horizon-client-switch-nro-with-mods
-          path: |
-            horizon-nx/**/*.nro
-            bevy-horizon/**/*.nro
+printf 'getrandom={path="/src/bevy-horizon/patches/getrandom-0.2"}\ngetrandom_03={package="getrandom",path="/src/bevy-horizon/patches/getrandom-0.3"}\nrustix_038={package="rustix",path="/src/bevy-horizon/patches/rustix-038"}\nwinit={path="/src/bevy-horizon/patches/winit-stub"}\narboard={path="/src/bevy-horizon/patches/arboard"}\nwayland-backend={path="/src/bevy-horizon/patches/wayland-backend"}\nwayland-client={path="/src/bevy-horizon/patches/wayland-client"}\nwayland-protocols={path="/src/bevy-horizon/patches/wayland-protocols"}\nwayland-csd-frame={path="/src/bevy-horizon/patches/wayland-csd-frame"}\nwayland-cursor={path="/src/bevy-horizon/patches/wayland-cursor"}\ncalloop-wayland-source={path="/src/bevy-horizon/patches/calloop-wayland-source"}\nwayland-protocols-wlr={path="/src/bevy-horizon/patches/wayland-protocols-wlr"}\nwayland-protocols-plasma={path="/src/bevy-horizon/patches/wayland-protocols-plasma"}\nsmithay-client-toolkit={path="/src/bevy-horizon/patches/smithay-client-toolkit"}\nsctk-adwaita={path="/src/bevy-horizon/patches/sctk-adwaita"}\nx11rb={path="/src/bevy-horizon/patches/x11rb"}\ncalloop={path="/src/bevy-horizon/patches/calloop"}\n' >> bevy-horizon/.cargo/bevy-0.19.toml
+sed -i 's/def patches(.*):/def patches(p): return {}/g' bevy-horizon/scripts/build_game.sh
+- name: Build Horizon NRO with Mods
+run: BEVY=0.19 CARGO_ARGS="--no-default-features" JOBS=4 ./bevy-horizon/scripts/build_game.sh "$PWD/horizon-nx" horizon-client horizon-client "Horizon"
+- name: Upload NRO Artifact
+uses: actions/upload-artifact@v4
+with:
+name: horizon-client-switch-nro-with-mods
+path: |
+horizon-nx//*.nro
+bevy-horizon//*.nro
